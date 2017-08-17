@@ -12,6 +12,12 @@ processing with [JQ][JQ].
 
 This scripts in this repo need [Skew][skew] to run.
 
+## Notes
+
+Some of the scripts here are mirrored from `garnaat`'s gists (noted 
+[here][garnaat]).  They are tracked in this repo in the event that
+modifications were/are made.
+
 ## Content
 
   - `asg.py`: Index information on autoscaling groups
@@ -75,7 +81,7 @@ jq -r  '[.[] | del(select (.Tags[]?.Key  == "createdBy" )) | select(.StackId != 
 ```
 
 
-
+[garnaat]: https://github.com/scopely-devops/skew#more-examples
 [JQ]: https://stedolan.github.io/jq/
 [Scopely]: http://scopely.com/
 [skew]: https://github.com/scopely-devops/skew
