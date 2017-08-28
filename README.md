@@ -57,28 +57,26 @@ jq     ' .[] | del ( .  | select(.Tags[]?.Key == ("CreatedBy" or "createdBy")  )
 show all autoscale group instances  which are missing the tag "createdBy".  from this list, extract the instances into an object, then group into an array by account:
 
 ```
-jq '[.[] | del(select (.Tags[]?.Key  == "createdBy"  )) | {"InstanceId": .Instances[]?.InstanceId?, "ASG": .AutoScalingGroupName, "awsRegion": (.ARN | split(":") | .[3]), "Account": (.ARN | split(":") | .[4])}] | group_by(.Account) ' aws-asg.json
+jq '[.[] | {"InstanceId": .InstanceId?,  "awsRegion": (.ARN | split(":") | .[3]), "Account": (.ARN | split(":") | .[4]), "VpcId": .VpcId? }] | group_by(.Account)  ' aws-ec2.json
 ```
 
 
 ### delete all autoscaling groups missing the above tags:
 notes:  it needs the autoscalinggroupname != null to not fail on the deleted entries
 
-```
-jq '[.[] | del(select (.Tags[]?.Key  == "createdBy" )) |  select(.AutoScalingGroupName != null) | {"ASG": .AutoScalingGroupName, "awsRegion": (.ARN | split(":") | .[3]), "Account": (.ARN | split(":") | .[4])}] | group_by(.Account)|  .[1][] | @sh "AWS_PROFILE=example-profile aws autoscaling delete-auto-scaling-group --auto-scaling-group-name \(.ASG) --region \(.awsRegion)" ' aws-asg.json
-```
+> `jq '[.[] | del(select (.Tags[]?.Key  == "createdBy" )) |  select(.AutoScalingGroupName != null) | {"ASG": .AutoScalingGroupName, "awsRegion": (.ARN | split(":") | .[3]), "Account": (.ARN | split(":") | .[4])}] | group_by(.Account)|  .[1][] | @sh "AWS_PROFILE=example-profile aws autoscaling delete-auto-scaling-group --auto-scaling-group-name \(.ASG) --region \(.awsRegion)" ' aws-asg.json`
 
-```
-jq -r  '[.[] | del(select (.Tags[]?.Key  == "createdBy" )) |  select(.AutoScalingGroupName != null) | {"ASG": .AutoScalingGroupName, "awsRegion": (.ARN | split(":") | .[3]), "Account": (.ARN | split(":") | .[4])}] | group_by(.Account)|  .[1][] | @sh "AWS_PROFILE=example-profile aws autoscaling update-auto-scaling-group --auto-scaling-group-name \(.ASG) --region \(.awsRegion) --desired-capacity 0 --min-size 0 --default-cooldown 2" ' aws-asg.json
-```
+#### Force all autoscaling groups missing the tag "createdBy" to reduce capacity to zero instances
 
-```
-jq -r  '[.[] | del(select (.Tags[]?.Key  == "createdBy" )) |  select(.AutoScalingGroupName != null) | {"ASG": .AutoScalingGroupName, "awsRegion": (.ARN | split(":") | .[3]), "Account": (.ARN | split(":") | .[4])}] | group_by(.Account)|  .[1][] | @sh "AWS_PROFILE=example-profile aws autoscaling delete-auto-scaling-group --auto-scaling-group-name \(.ASG) --region \(.awsRegion)" ' aws-asg.json
-```
+> `jq -r  '[.[] | del(select (.Tags[]?.Key  == "createdBy" )) |  select(.AutoScalingGroupName != null) | {"ASG": .AutoScalingGroupName, "awsRegion": (.ARN | split(":") | .[3]), "Account": (.ARN | split(":") | .[4])}] | group_by(.Account)|  .[1][] | @sh "AWS_PROFILE=example-profile aws autoscaling update-auto-scaling-group --auto-scaling-group-name \(.ASG) --region \(.awsRegion) --desired-capacity 0 --min-size 0 --default-cooldown 2" ' aws-asg.json`
 
-```
-jq -r  '[.[] | del(select (.Tags[]?.Key  == "createdBy" )) | select(.StackId != null) | {"StackId": .StackId, "StackName": .StackName, "awsRegion": (.StackId | split(":") | .[3]), "Account": (.StackId | split(":") | .[4]), "StackStatus": .StackStatus}] | group_by(.Account) | .[1][] | if .StackStatus == "DELETE_FAILED" then @sh "AWS_PROFILE=example-profile aws --region \(.awsRegion) cloudformation delete-stack --stack-name \(.StackName) " else empty end'  aws-cf.json
-```
+#### Delete all autoscaling groups missing the tag "createdBy" (Note: AWS CLI will now allow you to delete an ASG with running capacity, use the previous one liner)
+
+> `jq -r  '[.[] | del(select (.Tags[]?.Key  == "createdBy" )) |  select(.AutoScalingGroupName != null) | {"ASG": .AutoScalingGroupName, "awsRegion": (.ARN | split(":") | .[3]), "Account": (.ARN | split(":") | .[4])}] | group_by(.Account)|  .[1][] | @sh "AWS_PROFILE=example-profile aws autoscaling delete-auto-scaling-group --auto-scaling-group-name \(.ASG) --region \(.awsRegion)" ' aws-asg.json`
+
+
+
+> `jq -r  '[.[] | del(select (.Tags[]?.Key  == "createdBy" )) | select(.StackId != null) | {"StackId": .StackId, "StackName": .StackName, "awsRegion": (.StackId | split(":") | .[3]), "Account": (.StackId | split(":") | .[4]), "StackStatus": .StackStatus}] | group_by(.Account) | .[1][] | if .StackStatus == "DELETE_FAILED" then @sh "AWS_PROFILE=example-profile aws --region \(.awsRegion) cloudformation delete-stack --stack-name \(.StackName) " else empty end'  aws-cf.json`
 
 
 [garnaat]: https://github.com/scopely-devops/skew#more-examples
